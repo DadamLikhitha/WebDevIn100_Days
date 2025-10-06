@@ -1588,10 +1588,18 @@ class ChatbotWidget {
             keywords: ['weather', 'climate', 'forecast', 'temperature'],
             answer: 'Our Weather App shows real-time weather for any city! Features: current conditions, weather icons, city search, and responsive design. Perfect for staying updated on weather conditions.'
         },
+        // {
+        //     keywords: ['drawing', 'art', 'creative', 'design', 'paint'],
+        //     answer: 'Creative tools available:\n\n🎨 Drawing Apps: Basic and advanced with layers\n🖌️ Design: Pixel Art Maker, ASCII Art Generator\n🌈 Colors: Palette Generator, Color Picker, Gradient Generator\n\nGreat for artists and designers!'
+        // },
         {
-            keywords: ['drawing', 'art', 'creative', 'design', 'paint'],
-            answer: 'Creative tools available:\n\n🎨 Drawing Apps: Basic and advanced with layers\n🖌️ Design: Pixel Art Maker, ASCII Art Generator\n🌈 Colors: Palette Generator, Color Picker, Gradient Generator\n\nGreat for artists and designers!'
+            keywords: [
+                'drawing', 'draw', 'paint', 'sketch', 'art', 'artwork', 
+                'design', 'doodle', 'canvas', 'creative'
+            ],
+            answer: 'We have some great creative tools! You can try our **Drawing App**, an **Advanced Drawing** tool with layers, or even a **Pixel Art Maker**. Which one sparks your interest?'
         },
+        
         {
             keywords: ['chess', 'board game', 'strategy'],
             answer: 'Our Chess Game features move validation, piece animations, and complete game logic. Perfect for chess enthusiasts wanting to play in the browser!'
@@ -2316,10 +2324,23 @@ class ChatbotWidget {
     keywords: ['notes','app','organization','search','rich text'],
     answer: 'Name: Notes App<br>Description: Feature-rich notes application with search and organization tools.<br>DemoLink: <a href="./public/Day-36_Notes_App/index.html" target="_blank">Click Here</a>'
   },
-  {
-    keywords: ['note','taker','markdown','auto-save','export'],
-    answer: 'Name: Note Taker<br>Description: Simple and efficient note-taking app with markdown support.<br>DemoLink: <a href="./public/Day-42_NoteTaker/index.html" target="_blank">Click Here</a>'
-  },
+//   {
+//     keywords: ['note','taker','markdown','auto-save','export'],
+//     answer: 'Name: Note Taker<br>Description: Simple and efficient note-taking app with markdown support.<br>DemoLink: <a href="./public/Day-42_NoteTaker/index.html" target="_blank">Click Here</a>'
+//   },
+    // {
+    // keywords: ['note', 'notes', 'notebook', 'note-taking', 'organize tasks'],
+    // answer: 'I found two great options for notes! The **Notes App** is feature-rich, while the **Note Taker** is simple with markdown support. Which one would you like to see?'
+    // },
+    {
+                keywords: ['note', 'notes', 'notebook', 'note-taking', 'organize tasks'],
+                answer: {
+                    type: 'disambiguation',
+                    question: 'I found a couple of note-taking apps! Which one are you interested in?',
+                    options: ['Notes App', 'Note Taker']
+                }
+            }
+
   {
     keywords: ['audio','visualizer','particles','frequency','themes'],
     answer: 'Name: Audio Visualizer<br>Description: Interactive audio visualizer with particle effects and real-time frequency analysis.<br>DemoLink: <a href="./public/Day-45/index.html" target="_blank">Click Here</a>'
@@ -2856,7 +2877,15 @@ class ChatbotWidget {
         {
             keywords: ['categories', 'types', 'kinds', 'organize'],
             answer: 'Project categories:\n\n🎮 Games - Interactive entertainment\n🛠️ Utilities - Practical daily tools\n📚 Education - Learning applications\n🎨 Creative - Art and design tools\n📈 Productivity - Organization helpers\n\nWhich category interests you?'
-        }
+        },
+        // Add this new object to your qnaDatabase array
+{
+    keywords: ['quick_actions'], // Special keyword
+    answer: {
+        type: 'quick_actions',
+        actions: ['Show me some games', 'List utilities', 'What can you do?']
+    }
+}
     ];
 
     /**
@@ -2914,26 +2943,52 @@ class ChatbotWidget {
         });
     }
 
+    // /**
+    //  * Setup quick action buttons
+    //  */
+    // setupQuickActions() {
+    //     const quickButtons = document.querySelectorAll('.quick-btn');
+    //     quickButtons.forEach(button => {
+    //         button.addEventListener('click', (e) => {
+    //             const message = e.currentTarget.dataset.message;
+    //             if (message) {
+    //                 this.chatInput.value = message;
+    //                 this.handleSendMessage();
+
+    //                 // Hide quick actions after first use
+    //                 const quickActions = document.querySelector('.quick-actions');
+    //                 if (quickActions) {
+    //                     quickActions.style.display = 'none';
+    //                 }
+    //             }
+    //         });
+    //     });
+    // }
     /**
-     * Setup quick action buttons
+     * Setup quick action buttons dynamically
      */
     setupQuickActions() {
-        const quickButtons = document.querySelectorAll('.quick-btn');
-        quickButtons.forEach(button => {
-            button.addEventListener('click', (e) => {
-                const message = e.currentTarget.dataset.message;
-                if (message) {
-                    this.chatInput.value = message;
-                    this.handleSendMessage();
+        const quickActionsData = this.qnaDatabase.find(item => item.keywords.includes('quick_actions'));
+        
+        if (quickActionsData && quickActionsData.answer.actions) {
+            const quickActionsContainer = document.querySelector('.quick-actions');
+            if (!quickActionsContainer) return;
 
-                    // Hide quick actions after first use
-                    const quickActions = document.querySelector('.quick-actions');
-                    if (quickActions) {
-                        quickActions.style.display = 'none';
-                    }
-                }
+            quickActionsContainer.innerHTML = ''; // Clear any hardcoded buttons
+
+            quickActionsData.answer.actions.forEach(actionText => {
+                const button = document.createElement('button');
+                button.className = 'quick-btn';
+                button.textContent = actionText;
+                
+                button.addEventListener('click', () => {
+                    this.chatInput.value = actionText;
+                    this.handleSendMessage();
+                });
+                
+                quickActionsContainer.appendChild(button);
             });
-        });
+        }
     }
 
     /**
@@ -3008,10 +3063,50 @@ class ChatbotWidget {
     /**
      * Handle sending a message
      */
+    // async handleSendMessage() {
+    //     const message = this.chatInput.value.trim();
+
+    //     if (!message || this.isTyping) return;
+
+    //     // Clear input
+    //     this.chatInput.value = '';
+    //     this.validateInput();
+
+    //     // Add user message
+    //     this.addMessage(message, 'user');
+
+    //     // Show typing indicator
+    //     this.showTypingIndicator();
+
+    //     // Process message and get response
+    //     try {
+    //         const response = await this.processMessage(message);
+
+    //         // Remove typing indicator and add bot response
+    //         setTimeout(() => {
+    //             this.hideTypingIndicator();
+    //             this.addMessage(response, 'bot');
+    //         }, 1000 + Math.random() * 1000); // Simulate realistic response time
+
+    //     } catch (error) {
+    //         console.error('Error processing message:', error);
+    //         this.hideTypingIndicator();
+    //         this.addMessage('Sorry, I encountered an error. Please try again.', 'bot');
+    //     }
+    // }
+    /**
+     * Handle sending a message (with double-send protection)
+     */
     async handleSendMessage() {
         const message = this.chatInput.value.trim();
 
         if (!message || this.isTyping) return;
+
+        // --- START of new code ---
+        // Immediately disable input to prevent double-sends
+        this.chatInput.disabled = true;
+        this.sendButton.disabled = true;
+        // --- END of new code ---
 
         // Clear input
         this.chatInput.value = '';
@@ -3027,85 +3122,257 @@ class ChatbotWidget {
         try {
             const response = await this.processMessage(message);
 
-            // Remove typing indicator and add bot response
+            // Simulate realistic response time
             setTimeout(() => {
                 this.hideTypingIndicator();
                 this.addMessage(response, 'bot');
-            }, 1000 + Math.random() * 1000); // Simulate realistic response time
+
+                // --- START of new code ---
+                // Re-enable input after bot responds
+                this.chatInput.disabled = false;
+                this.chatInput.focus();
+                this.validateInput();
+                // --- END of new code ---
+
+            }, 1000 + Math.random() * 1000);
 
         } catch (error) {
             console.error('Error processing message:', error);
             this.hideTypingIndicator();
             this.addMessage('Sorry, I encountered an error. Please try again.', 'bot');
+            
+            // --- START of new code ---
+            // Re-enable input on error
+            this.chatInput.disabled = false;
+            this.validateInput();
+            // --- END of new code ---
         }
     }
 
+    // /**
+    //  * Process user message and return appropriate response
+    //  */
+    // async processMessage(message) {
+    //     const lowercaseMessage = message.toLowerCase();
+
+    //     // Check for specific project searches first
+    //     const projectMatch = this.searchProjects(lowercaseMessage);
+    //     if (projectMatch) {
+    //         return projectMatch;
+    //     }
+
+    //     // Find matching Q&A based on keywords
+    //     for (const qa of this.qnaDatabase) {
+    //         const hasMatch = qa.keywords.some(keyword => {
+    //             const pattern = `\\b${keyword.replace(/\s+/g, '\\s*')}\\b`;
+    //             const regex = new RegExp(pattern, 'i');
+    //             return regex.test(message);
+    //         });
+
+    //         if (hasMatch) {
+    //             return qa.answer;
+    //         }
+    //     }
+
+
+    //     // Fallback response with helpful suggestions
+    //     return "I'd love to help! I can tell you about:\n\n🎮 **Our Games**: Chess, Space War, Candy Crush, Memory Game\n🛠️ **Utility Apps**: Weather App, QR Generator, Todo List\n🎨 **Creative Tools**: Drawing Apps, Color Tools\n📚 **Educational Apps**: Grade Analyzer, Quiz Programs\n\nTry asking about 'games', 'utilities', or a specific project name!";
+    // }
+
+    // /**
+    //  * Search for specific projects based on user query
+    //  */
+    // searchProjects(query) {
+    //     // Look for exact project name matches
+    //     for (const project of this.projectsData) {
+    //         if (query.includes(project.name.toLowerCase())) {
+    //             return `**${project.name}** - ${project.description}\n\n🔧 **Tech**: ${project.technologies.join(', ')}\n✨ **Features**: ${project.features.join(', ')}\n📂 **Category**: ${project.category}\n\nWould you like to explore more ${project.category} projects?`;
+    //         }
+    //     }
+
+    //     // Look for category matches
+    //     const categories = ['games', 'utilities', 'productivity', 'education', 'creative'];
+    //     for (const category of categories) {
+    //         if (query.includes(category)) {
+    //             const categoryProjects = this.projectsData.filter(p =>
+    //                 p.category === category ||
+    //                 (category === 'games' && p.category === 'games') ||
+    //                 (category === 'creative' && p.category === 'creativity')
+    //             );
+
+    //             if (categoryProjects.length > 0) {
+    //                 const projectList = categoryProjects.slice(0, 5).map(p =>
+    //                     `• **${p.name}**: ${p.description}`
+    //                 ).join('\n');
+
+    //                 return `Here are some ${category} projects:\n\n${projectList}\n\n${categoryProjects.length > 5 ? `...and ${categoryProjects.length - 5} more!` : ''}`;
+    //             }
+    //         }
+    //     }
+
+    //     return null;
+    // }
     /**
-     * Process user message and return appropriate response
+     * Process user message and return appropriate response (ENHANCED VERSION)
      */
     async processMessage(message) {
-        const lowercaseMessage = message.toLowerCase();
+        const lowercaseMessage = message.toLowerCase().trim();
 
-        // Check for specific project searches first
-        const projectMatch = this.searchProjects(lowercaseMessage);
-        if (projectMatch) {
-            return projectMatch;
+        // 1. Check for specific "Day X" queries using Regex
+        const dayMatch = lowercaseMessage.match(/day\s*-?(\d+)/);
+        if (dayMatch) {
+            const dayNumber = parseInt(dayMatch[1], 10);
+            const project = this.projectsData.find(p => p.originalDay === dayNumber);
+            if (project) {
+                return `Found it! Day ${dayNumber} is **${project.name}**. <br>${project.description}. You can <a href="${project.demoLink}" target="_blank">try it here</a>.`;
+            } else {
+                return `I couldn't find a project for Day ${dayNumber}. Please try a number between 1 and ${this.projectsData.length}.`;
+            }
         }
 
-        // Find matching Q&A based on keywords
+        // 2. Find matching Q&A based on keywords (existing logic)
         for (const qa of this.qnaDatabase) {
             const hasMatch = qa.keywords.some(keyword => {
                 const pattern = `\\b${keyword.replace(/\s+/g, '\\s*')}\\b`;
                 const regex = new RegExp(pattern, 'i');
-                return regex.test(message);
+                return regex.test(lowercaseMessage);
             });
 
+            // if (hasMatch) {
+            //     return qa.answer;
+            // }
             if (hasMatch) {
-                return qa.answer;
+                // Check if the answer is a disambiguation object
+                if (typeof qa.answer === 'object' && qa.answer.type === 'disambiguation') {
+                    // Create the response with clickable buttons
+                    let response = qa.answer.question;
+                    qa.answer.options.forEach(option => {
+                        // We use a special format that addMessage will understand
+                        response += `\n<button class="chat-option-btn">${option}</button>`;
+                    });
+                    return response;
+                }
+                return qa.answer; // Otherwise, return the simple string answer
             }
         }
-
-
-        // Fallback response with helpful suggestions
-        return "I'd love to help! I can tell you about:\n\n🎮 **Our Games**: Chess, Space War, Candy Crush, Memory Game\n🛠️ **Utility Apps**: Weather App, QR Generator, Todo List\n🎨 **Creative Tools**: Drawing Apps, Color Tools\n📚 **Educational Apps**: Grade Analyzer, Quiz Programs\n\nTry asking about 'games', 'utilities', or a specific project name!";
-    }
-
-    /**
-     * Search for specific projects based on user query
-     */
-    searchProjects(query) {
-        // Look for exact project name matches
+        
+        // // 3. Check for specific project names (from searchProjects function)
+        // const projectMatch = this.projectsData.find(p => lowercaseMessage.includes(p.name.toLowerCase()));
+        // if (projectMatch) {
+        //     return `**${projectMatch.name}** - ${projectMatch.description}<br><br>🔧 **Tech**: ${projectMatch.technologies.join(', ')}<br>✨ **Features**: ${projectMatch.features.join(', ')}<br>📂 **Category**: ${projectMatch.category}`;
+        // }
+        // 3. Check for specific project names
         for (const project of this.projectsData) {
-            if (query.includes(project.name.toLowerCase())) {
-                return `**${project.name}** - ${project.description}\n\n🔧 **Tech**: ${project.technologies.join(', ')}\n✨ **Features**: ${project.features.join(', ')}\n📂 **Category**: ${project.category}\n\nWould you like to explore more ${project.category} projects?`;
+            if (lowercaseMessage.includes(project.name.toLowerCase())) {
+                return `**${project.name}** - ${project.description}<br><br>🔧 **Tech**: ${project.technologies.join(', ')}<br>✨ **Features**: ${project.features.join(', ')}<br>📂 **Category**: ${project.category}`;
             }
         }
 
-        // Look for category matches
-        const categories = ['games', 'utilities', 'productivity', 'education', 'creative'];
+        // 4. NEW: Typo correction for project names ("Did you mean?")
+        let closestMatch = null;
+        let smallestDistance = Infinity;
+
+        for (const project of this.projectsData) {
+            const distance = this._getLevenshteinDistance(lowercaseMessage, project.name.toLowerCase());
+            if (distance < smallestDistance && distance < 4) { // Threshold of 4 is good for small typos
+                smallestDistance = distance;
+                closestMatch = project;
+            }
+        }
+
+        if (closestMatch) {
+            return `I couldn't find anything for that, but did you mean **${closestMatch.name}**?`;
+        }
+        
+        // 5. Check for category matches (from searchProjects function)
+        const categories = [...new Set(this.projectsData.map(p => p.category.toLowerCase()))];
         for (const category of categories) {
-            if (query.includes(category)) {
-                const categoryProjects = this.projectsData.filter(p =>
-                    p.category === category ||
-                    (category === 'games' && p.category === 'games') ||
-                    (category === 'creative' && p.category === 'creativity')
-                );
+            if (lowercaseMessage.includes(category)) {
+                const categoryProjects = this.projectsData.filter(p => p.category.toLowerCase() === category);
+                const projectList = categoryProjects.slice(0, 3).map(p => `• **${p.name}**`).join('<br>');
+                return `Here are some ${category} projects I found:<br>${projectList}<br>...and ${categoryProjects.length - 3} more!`;
+            }
+        }
 
-                if (categoryProjects.length > 0) {
-                    const projectList = categoryProjects.slice(0, 5).map(p =>
-                        `• **${p.name}**: ${p.description}`
-                    ).join('\n');
+        // 6. Fallback response if nothing else matches
+        return "I'm not sure I understand. You can ask me about 'games', 'utilities', or a specific project like 'Chess Game' or 'Weather App'.";
+    }
+    /**
+     * Helper function to calculate the difference between two strings (for typo correction)
+     */
+    _getLevenshteinDistance(a, b) {
+        if (a.length === 0) return b.length;
+        if (b.length === 0) return a.length;
+        const matrix = [];
 
-                    return `Here are some ${category} projects:\n\n${projectList}\n\n${categoryProjects.length > 5 ? `...and ${categoryProjects.length - 5} more!` : ''}`;
+        for (let i = 0; i <= b.length; i++) {
+            matrix[i] = [i];
+        }
+
+        for (let j = 0; j <= a.length; j++) {
+            matrix[0][j] = j;
+        }
+
+        for (let i = 1; i <= b.length; i++) {
+            for (let j = 1; j <= a.length; j++) {
+                if (b.charAt(i - 1) === a.charAt(j - 1)) {
+                    matrix[i][j] = matrix[i - 1][j - 1];
+                } else {
+                    matrix[i][j] = Math.min(
+                        matrix[i - 1][j - 1] + 1, // substitution
+                        matrix[i][j - 1] + 1,     // insertion
+                        matrix[i - 1][j] + 1      // deletion
+                    );
                 }
             }
         }
 
-        return null;
+        return matrix[b.length][a.length];
     }
+    // /**
+    //  * Add a message to the chat with smooth animation
+    //  */
+    // addMessage(content, sender) {
+    //     const messageElement = document.createElement('div');
+    //     messageElement.className = `message ${sender}-message`;
+    //     messageElement.style.opacity = '0';
+    //     messageElement.style.transform = 'translateY(20px)';
+    //     messageElement.style.transition = 'all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)';
+
+    //     const messageContent = document.createElement('div');
+    //     messageContent.className = 'message-content';
+
+    //     if (sender === 'bot') {
+    //         // Allow HTML in bot messages
+    //         messageContent.innerHTML = `<p>${content.replace(/\n/g, '<br>')}</p>`;
+    //     } else {
+    //         // Escape HTML for user messages
+    //         messageContent.innerHTML = `<p>${this.escapeHtml(content).replace(/\n/g, '<br>')}</p>`;
+    //     }
+
+    //     const messageTime = document.createElement('div');
+    //     messageTime.className = 'message-time';
+    //     messageTime.textContent = this.formatTime(new Date());
+
+    //     messageElement.appendChild(messageContent);
+    //     messageElement.appendChild(messageTime);
+
+    //     this.messagesContainer.appendChild(messageElement);
+
+    //     requestAnimationFrame(() => {
+    //         messageElement.style.opacity = '1';
+    //         messageElement.style.transform = 'translateY(0)';
+    //     });
+
+    //     setTimeout(() => {
+    //         this.scrollToBottom();
+    //     }, 100);
+
+    //     this.saveChatHistory();
+    // }
 
     /**
-     * Add a message to the chat with smooth animation
+     * Add a message to the chat with smooth animation (NOW WITH BUTTON SUPPORT)
      */
     addMessage(content, sender) {
         const messageElement = document.createElement('div');
@@ -3117,22 +3384,34 @@ class ChatbotWidget {
         const messageContent = document.createElement('div');
         messageContent.className = 'message-content';
 
+        let formattedContent = content;
         if (sender === 'bot') {
-            // Allow HTML in bot messages
-            messageContent.innerHTML = `<p>${content.replace(/\n/g, '<br>')}</p>`;
+            // Allow HTML in bot messages and handle custom buttons
+            formattedContent = content.replace(/\n/g, '<br>');
         } else {
             // Escape HTML for user messages
-            messageContent.innerHTML = `<p>${this.escapeHtml(content).replace(/\n/g, '<br>')}</p>`;
+            formattedContent = this.escapeHtml(content).replace(/\n/g, '<br>');
         }
+        
+        messageContent.innerHTML = `<p>${formattedContent}</p>`;
+        
+        messageElement.appendChild(messageContent);
+        this.messagesContainer.appendChild(messageElement);
+
+        // Turn button placeholders into actual, clickable buttons
+        messageContent.querySelectorAll('.chat-option-btn').forEach(button => {
+            button.addEventListener('click', () => {
+                this.chatInput.value = button.textContent;
+                this.handleSendMessage();
+                // Optional: remove buttons after one is clicked
+                button.parentElement.remove();
+            });
+        });
 
         const messageTime = document.createElement('div');
         messageTime.className = 'message-time';
         messageTime.textContent = this.formatTime(new Date());
-
-        messageElement.appendChild(messageContent);
         messageElement.appendChild(messageTime);
-
-        this.messagesContainer.appendChild(messageElement);
 
         requestAnimationFrame(() => {
             messageElement.style.opacity = '1';
@@ -3145,8 +3424,6 @@ class ChatbotWidget {
 
         this.saveChatHistory();
     }
-
-
     /**
      * Format message content with proper line breaks and emojis
      */
@@ -3235,60 +3512,129 @@ class ChatbotWidget {
         return div.innerHTML;
     }
 
+    // /**
+    //  * Save chat history to localStorage
+    //  */
+    // saveChatHistory() {
+    //     try {
+    //         const messages = Array.from(this.messagesContainer.children)
+    //             .filter(msg => !msg.id || msg.id !== 'typing-indicator')
+    //             .map(msg => ({
+    //                 content: msg.querySelector('.message-content p').textContent,
+    //                 sender: msg.classList.contains('bot-message') ? 'bot' : 'user',
+    //                 timestamp: msg.querySelector('.message-time').textContent
+    //             }));
+
+    //         localStorage.setItem('chatbot-history', JSON.stringify(messages.slice(-50))); // Keep last 50 messages
+    //     } catch (error) {
+    //         console.error('Error saving chat history:', error);
+    //     }
+    // }
+
+    // /**
+    //  * Load chat history from localStorage
+    //  */
+    // loadChatHistory() {
+    //     try {
+    //         const history = localStorage.getItem('chatbot-history');
+    //         if (history) {
+    //             const messages = JSON.parse(history);
+
+    //             // Clear current messages except welcome message
+    //             const welcomeMessage = this.messagesContainer.firstElementChild;
+    //             this.messagesContainer.innerHTML = '';
+    //             if (welcomeMessage) {
+    //                 this.messagesContainer.appendChild(welcomeMessage);
+    //             }
+
+    //             // Restore messages
+    //             messages.forEach(msg => {
+    //                 if (msg.sender !== 'bot' || msg.content !== welcomeMessage?.querySelector('p')?.textContent) {
+    //                     const messageElement = document.createElement('div');
+    //                     messageElement.className = `message ${msg.sender}-message`;
+
+    //                     const messageContent = document.createElement('div');
+    //                     messageContent.className = 'message-content';
+    //                     messageContent.innerHTML = `<p>${this.escapeHtml(msg.content)}</p>`;
+
+    //                     const messageTime = document.createElement('div');
+    //                     messageTime.className = 'message-time';
+    //                     messageTime.textContent = msg.timestamp;
+
+    //                     messageElement.appendChild(messageContent);
+    //                     messageElement.appendChild(messageTime);
+
+    //                     this.messagesContainer.appendChild(messageElement);
+    //                 }
+    //             });
+
+    //             this.scrollToBottom();
+    //         }
+    //     } catch (error) {
+    //         console.error('Error loading chat history:', error);
+    //     }
+    // }
     /**
-     * Save chat history to localStorage
+     * Save chat history to localStorage (with rich content)
      */
     saveChatHistory() {
         try {
             const messages = Array.from(this.messagesContainer.children)
                 .filter(msg => !msg.id || msg.id !== 'typing-indicator')
-                .map(msg => ({
-                    content: msg.querySelector('.message-content p').textContent,
-                    sender: msg.classList.contains('bot-message') ? 'bot' : 'user',
-                    timestamp: msg.querySelector('.message-time').textContent
-                }));
+                .map(msg => {
+                    const contentElement = msg.querySelector('.message-content p');
+                    
+                    // Clone the element to safely remove buttons before saving
+                    const contentClone = contentElement.cloneNode(true);
+                    contentClone.querySelectorAll('.chat-option-btn').forEach(btn => btn.remove());
 
-            localStorage.setItem('chatbot-history', JSON.stringify(messages.slice(-50))); // Keep last 50 messages
+                    return {
+                        // Save the innerHTML to keep bold/links, but not buttons
+                        content: contentClone.innerHTML, 
+                        sender: msg.classList.contains('bot-message') ? 'bot' : 'user',
+                        timestamp: msg.querySelector('.message-time').textContent
+                    };
+                });
+
+            localStorage.setItem('chatbot-history', JSON.stringify(messages.slice(-50)));
         } catch (error) {
             console.error('Error saving chat history:', error);
         }
     }
 
     /**
-     * Load chat history from localStorage
+     * Load chat history from localStorage (with rich content)
      */
     loadChatHistory() {
         try {
             const history = localStorage.getItem('chatbot-history');
             if (history) {
                 const messages = JSON.parse(history);
+                
+                const welcomeMessageHTML = this.messagesContainer.innerHTML;
+                this.messagesContainer.innerHTML = welcomeMessageHTML;
 
-                // Clear current messages except welcome message
-                const welcomeMessage = this.messagesContainer.firstElementChild;
-                this.messagesContainer.innerHTML = '';
-                if (welcomeMessage) {
-                    this.messagesContainer.appendChild(welcomeMessage);
-                }
-
-                // Restore messages
                 messages.forEach(msg => {
-                    if (msg.sender !== 'bot' || msg.content !== welcomeMessage?.querySelector('p')?.textContent) {
-                        const messageElement = document.createElement('div');
-                        messageElement.className = `message ${msg.sender}-message`;
-
-                        const messageContent = document.createElement('div');
-                        messageContent.className = 'message-content';
-                        messageContent.innerHTML = `<p>${this.escapeHtml(msg.content)}</p>`;
-
-                        const messageTime = document.createElement('div');
-                        messageTime.className = 'message-time';
-                        messageTime.textContent = msg.timestamp;
-
-                        messageElement.appendChild(messageContent);
-                        messageElement.appendChild(messageTime);
-
-                        this.messagesContainer.appendChild(messageElement);
+                    // Don't re-add the initial welcome message
+                    if (msg.sender === 'bot' && msg.content.includes("help you with questions")) {
+                        return;
                     }
+
+                    const messageElement = document.createElement('div');
+                    messageElement.className = `message ${msg.sender}-message`;
+
+                    const messageContent = document.createElement('div');
+                    messageContent.className = 'message-content';
+                    // Directly use the saved HTML content
+                    messageContent.innerHTML = `<p>${msg.content}</p>`; 
+
+                    const messageTime = document.createElement('div');
+                    messageTime.className = 'message-time';
+                    messageTime.textContent = msg.timestamp;
+
+                    messageElement.appendChild(messageContent);
+                    messageElement.appendChild(messageTime);
+                    this.messagesContainer.appendChild(messageElement);
                 });
 
                 this.scrollToBottom();
