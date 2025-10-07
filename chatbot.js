@@ -2088,6 +2088,7 @@ class ChatbotWidget {
             keywords: ['Day-119', 'Day119', 'day-119', 'day 119', 'Day 119'],
             answer: 'Name: Car Racing<br>Description: Car Racing game.<br>DemoLink: <a href="./public/Day-160/index.html" target="_blank">Click Here</a>'
         },
+
         {
             keywords: ['Day-120', 'Day120', 'day-120', 'day 120', 'Day 120'],
             answer: 'Name: Baloon Buster<br>Description: Bust the Baloon.<br>DemoLink: <a href="./public/Day-161/index.html" target="_blank">Click Here</a>'
@@ -2333,13 +2334,13 @@ class ChatbotWidget {
     // answer: 'I found two great options for notes! The **Notes App** is feature-rich, while the **Note Taker** is simple with markdown support. Which one would you like to see?'
     // },
     {
-                keywords: ['note', 'notes', 'notebook', 'note-taking', 'organize tasks'],
-                answer: {
-                    type: 'disambiguation',
-                    question: 'I found a couple of note-taking apps! Which one are you interested in?',
-                    options: ['Notes App', 'Note Taker']
-                }
-            }
+        keywords: ['note', 'notes', 'notebook', 'note-taking', 'organize tasks'],
+        answer: {
+        type: 'disambiguation',
+        question: 'I found a couple of note-taking apps! Which one are you interested in?',
+        options: ['Notes App', 'Note Taker']
+         }
+     },
 
   {
     keywords: ['audio','visualizer','particles','frequency','themes'],
@@ -2873,29 +2874,40 @@ class ChatbotWidget {
     keywords: ['pinball'],
     answer: 'Name: Pinball<br>Description: Pinball Game.<br>DemoLink: <a href="./public/Day-193/index.html" target="_blank">Click Here</a>'
   },
-        
-        {
-            keywords: ['categories', 'types', 'kinds', 'organize'],
-            answer: 'Project categories:\n\n🎮 Games - Interactive entertainment\n🛠️ Utilities - Practical daily tools\n📚 Education - Learning applications\n🎨 Creative - Art and design tools\n📈 Productivity - Organization helpers\n\nWhich category interests you?'
-        },
-        // Add this new object to your qnaDatabase array
 {
-    keywords: ['quick_actions'], // Special keyword
+    keywords: ['clear history', 'delete chat', 'remove messages', 'reset chat', 'clear chat'],
+    answer: `Are you sure you want to clear the entire chat history? This cannot be undone.
+             <div class="message-options-container">
+                 <button class="chat-option-btn" data-action="clear-history-confirm">Yes, clear it</button>
+                 <button class="chat-option-btn" data-action="clear-history-cancel">No, keep it</button>
+             </div>`
+},
+  {
+    keywords: ['quick_actions'], 
     answer: {
         type: 'quick_actions',
         actions: ['Show me some games', 'List utilities', 'What can you do?']
     }
-}
+},
+        
+    {
+        keywords: ['categories', 'types', 'kinds', 'organize'],
+        answer: 'Project categories:\n\n🎮 Games - Interactive entertainment\n🛠️ Utilities - Practical daily tools\n📚 Education - Learning applications\n🎨 Creative - Art and design tools\n📈 Productivity - Organization helpers\n\nWhich category interests you?'
+    }
+        
+
     ];
 
     /**
      * Initialize the chatbot widget
      */
     init() {
+        this.loadChatHistory();
         this.bindEvents();
         this.setupKeyboardNavigation();
-        this.loadChatHistory();
+       
     }
+    
 
     /**
      * Bind event listeners
@@ -3212,123 +3224,120 @@ class ChatbotWidget {
 
     //     return null;
     // }
+    
     /**
-     * Process user message and return appropriate response (ENHANCED VERSION)
+     * Process user message and return appropriate response (FINAL CORRECTED LOGIC ORDER)
      */
-    async processMessage(message) {
-        const lowercaseMessage = message.toLowerCase().trim();
+    /**
+ * Process user message and return appropriate response.
+ * This version combines typo correction with disambiguation logic.
+ */
+async processMessage(message) {
+    const lowercaseMessage = message.toLowerCase().trim();
 
-        // 1. Check for specific "Day X" queries using Regex
-        const dayMatch = lowercaseMessage.match(/day\s*-?(\d+)/);
-        if (dayMatch) {
-            const dayNumber = parseInt(dayMatch[1], 10);
-            const project = this.projectsData.find(p => p.originalDay === dayNumber);
-            if (project) {
-                return `Found it! Day ${dayNumber} is **${project.name}**. <br>${project.description}. You can <a href="${project.demoLink}" target="_blank">try it here</a>.`;
+    // 1. Check for specific "Day X" queries (high priority)
+    const dayMatch = lowercaseMessage.match(/day\s*-?(\d+)/);
+    if (dayMatch) {
+        const dayNumber = parseInt(dayMatch[1], 10);
+        const project = this.projectsData.find(p => p.originalDay === dayNumber);
+        if (project) {
+            return `Found it! Day ${dayNumber} is **${project.name}**. <br>${project.description}. You can <a href="${project.demoLink}" target="_blank">try it here</a>.`;
+        }
+    }
+
+    // 2. Check for an exact project name match (high priority)
+    const exactProjectMatch = this.projectsData.find(p => p.name.toLowerCase() === lowercaseMessage);
+    if (exactProjectMatch) {
+        return `Here are the details for **${exactProjectMatch.name}**: ${exactProjectMatch.description}<br><br>You can <a href="${exactProjectMatch.demoLink}" target="_blank">try it here</a>.`;
+    }
+
+    // 3. Check for an exact keyword match from the Q&A database (high priority)
+    const exactQnAMatch = this.qnaDatabase.find(qa => qa.keywords.includes(lowercaseMessage));
+    if (exactQnAMatch) {
+         return exactQnAMatch.answer;
+    }
+    
+    // 4. Find the closest typo match across BOTH projects and Q&A keywords
+    let closestMatch = { text: null, type: null, distance: Infinity, response: null };
+    const typoThreshold = 3; // How many characters can be "wrong" for a typo
+
+    // Check against project names for typos
+    for (const project of this.projectsData) {
+        const distance = this._getLevenshteinDistance(lowercaseMessage, project.name.toLowerCase());
+        if (distance < closestMatch.distance && distance <= typoThreshold) {
+            closestMatch = {
+                text: project.name,
+                type: 'project',
+                distance: distance,
+                response: `I couldn't find anything for that, but did you mean **${project.name}**?`
+            };
+        }
+    }
+
+    // Check against Q&A keywords for typos
+    for (const qa of this.qnaDatabase) {
+        for (const keyword of qa.keywords) {
+            if (keyword.length < 4) continue; // Ignore short keywords
+            const distance = this._getLevenshteinDistance(lowercaseMessage, keyword);
+            if (distance < closestMatch.distance && distance <= typoThreshold) {
+                closestMatch = {
+                    text: keyword,
+                    type: 'qa',
+                    distance: distance,
+                    response: qa.answer // The actual answer, which could be a disambiguation object
+                };
+            }
+        }
+    }
+
+    // If a typo was found, return the suggestion or answer
+    if (closestMatch.distance > 0 && closestMatch.distance < Infinity) {
+        return closestMatch.response;
+    }
+
+    // 5. If no exact or typo match, check for broad category matches
+    const categories = [...new Set(this.projectsData.map(p => p.category.toLowerCase()))];
+    for (const category of categories) {
+        if (lowercaseMessage.includes(category)) {
+            const categoryProjects = this.projectsData.filter(p => p.category.toLowerCase() === category);
+            const projectList = categoryProjects.slice(0, 3).map(p => `• **${p.name}**`).join('<br>');
+            return `Here are some ${category} projects I found:<br>${projectList}<br>...and ${categoryProjects.length > 3 ? `${categoryProjects.length - 3} more!` : ''}`;
+        }
+    }
+
+    // 6. Final fallback response
+    return "I'm not sure I understand. You can ask me about 'games', 'utilities', or a specific project like 'Chess Game' or 'Weather App'.";
+}
+
+/**
+ * Levenshtein distance function for typo detection.
+ * (Helper function for processMessage)
+ */
+_getLevenshteinDistance(a, b) {
+    if (a.length === 0) return b.length;
+    if (b.length === 0) return a.length;
+    const matrix = [];
+    for (let i = 0; i <= b.length; i++) {
+        matrix[i] = [i];
+    }
+    for (let j = 0; j <= a.length; j++) {
+        matrix[0][j] = j;
+    }
+    for (let i = 1; i <= b.length; i++) {
+        for (let j = 1; j <= a.length; j++) {
+            if (b.charAt(i - 1) === a.charAt(j - 1)) {
+                matrix[i][j] = matrix[i - 1][j - 1];
             } else {
-                return `I couldn't find a project for Day ${dayNumber}. Please try a number between 1 and ${this.projectsData.length}.`;
+                matrix[i][j] = Math.min(
+                    matrix[i - 1][j - 1] + 1,
+                    matrix[i][j - 1] + 1,
+                    matrix[i - 1][j] + 1
+                );
             }
         }
-
-        // 2. Find matching Q&A based on keywords (existing logic)
-        for (const qa of this.qnaDatabase) {
-            const hasMatch = qa.keywords.some(keyword => {
-                const pattern = `\\b${keyword.replace(/\s+/g, '\\s*')}\\b`;
-                const regex = new RegExp(pattern, 'i');
-                return regex.test(lowercaseMessage);
-            });
-
-            // if (hasMatch) {
-            //     return qa.answer;
-            // }
-            if (hasMatch) {
-                // Check if the answer is a disambiguation object
-                if (typeof qa.answer === 'object' && qa.answer.type === 'disambiguation') {
-                    // Create the response with clickable buttons
-                    let response = qa.answer.question;
-                    qa.answer.options.forEach(option => {
-                        // We use a special format that addMessage will understand
-                        response += `\n<button class="chat-option-btn">${option}</button>`;
-                    });
-                    return response;
-                }
-                return qa.answer; // Otherwise, return the simple string answer
-            }
-        }
-        
-        // // 3. Check for specific project names (from searchProjects function)
-        // const projectMatch = this.projectsData.find(p => lowercaseMessage.includes(p.name.toLowerCase()));
-        // if (projectMatch) {
-        //     return `**${projectMatch.name}** - ${projectMatch.description}<br><br>🔧 **Tech**: ${projectMatch.technologies.join(', ')}<br>✨ **Features**: ${projectMatch.features.join(', ')}<br>📂 **Category**: ${projectMatch.category}`;
-        // }
-        // 3. Check for specific project names
-        for (const project of this.projectsData) {
-            if (lowercaseMessage.includes(project.name.toLowerCase())) {
-                return `**${project.name}** - ${project.description}<br><br>🔧 **Tech**: ${project.technologies.join(', ')}<br>✨ **Features**: ${project.features.join(', ')}<br>📂 **Category**: ${project.category}`;
-            }
-        }
-
-        // 4. NEW: Typo correction for project names ("Did you mean?")
-        let closestMatch = null;
-        let smallestDistance = Infinity;
-
-        for (const project of this.projectsData) {
-            const distance = this._getLevenshteinDistance(lowercaseMessage, project.name.toLowerCase());
-            if (distance < smallestDistance && distance < 4) { // Threshold of 4 is good for small typos
-                smallestDistance = distance;
-                closestMatch = project;
-            }
-        }
-
-        if (closestMatch) {
-            return `I couldn't find anything for that, but did you mean **${closestMatch.name}**?`;
-        }
-        
-        // 5. Check for category matches (from searchProjects function)
-        const categories = [...new Set(this.projectsData.map(p => p.category.toLowerCase()))];
-        for (const category of categories) {
-            if (lowercaseMessage.includes(category)) {
-                const categoryProjects = this.projectsData.filter(p => p.category.toLowerCase() === category);
-                const projectList = categoryProjects.slice(0, 3).map(p => `• **${p.name}**`).join('<br>');
-                return `Here are some ${category} projects I found:<br>${projectList}<br>...and ${categoryProjects.length - 3} more!`;
-            }
-        }
-
-        // 6. Fallback response if nothing else matches
-        return "I'm not sure I understand. You can ask me about 'games', 'utilities', or a specific project like 'Chess Game' or 'Weather App'.";
     }
-    /**
-     * Helper function to calculate the difference between two strings (for typo correction)
-     */
-    _getLevenshteinDistance(a, b) {
-        if (a.length === 0) return b.length;
-        if (b.length === 0) return a.length;
-        const matrix = [];
-
-        for (let i = 0; i <= b.length; i++) {
-            matrix[i] = [i];
-        }
-
-        for (let j = 0; j <= a.length; j++) {
-            matrix[0][j] = j;
-        }
-
-        for (let i = 1; i <= b.length; i++) {
-            for (let j = 1; j <= a.length; j++) {
-                if (b.charAt(i - 1) === a.charAt(j - 1)) {
-                    matrix[i][j] = matrix[i - 1][j - 1];
-                } else {
-                    matrix[i][j] = Math.min(
-                        matrix[i - 1][j - 1] + 1, // substitution
-                        matrix[i][j - 1] + 1,     // insertion
-                        matrix[i - 1][j] + 1      // deletion
-                    );
-                }
-            }
-        }
-
-        return matrix[b.length][a.length];
-    }
+    return matrix[b.length][a.length];
+}
     // /**
     //  * Add a message to the chat with smooth animation
     //  */
@@ -3371,59 +3380,72 @@ class ChatbotWidget {
     //     this.saveChatHistory();
     // }
 
-    /**
-     * Add a message to the chat with smooth animation (NOW WITH BUTTON SUPPORT)
-     */
-    addMessage(content, sender) {
-        const messageElement = document.createElement('div');
-        messageElement.className = `message ${sender}-message`;
-        messageElement.style.opacity = '0';
-        messageElement.style.transform = 'translateY(20px)';
-        messageElement.style.transition = 'all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)';
+/**
+ * Add a message to the chat and handle interactive buttons.
+ */
+addMessage(content, sender) {
+    const messageElement = document.createElement('div');
+    messageElement.className = `message ${sender}-message`;
+    messageElement.style.opacity = '0';
+    messageElement.style.transform = 'translateY(20px)';
+    messageElement.style.transition = 'all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)';
 
-        const messageContent = document.createElement('div');
-        messageContent.className = 'message-content';
+    const messageContent = document.createElement('div');
+    messageContent.className = 'message-content';
 
-        let formattedContent = content;
-        if (sender === 'bot') {
-            // Allow HTML in bot messages and handle custom buttons
-            formattedContent = content.replace(/\n/g, '<br>');
-        } else {
-            // Escape HTML for user messages
-            formattedContent = this.escapeHtml(content).replace(/\n/g, '<br>');
-        }
-        
-        messageContent.innerHTML = `<p>${formattedContent}</p>`;
-        
-        messageElement.appendChild(messageContent);
-        this.messagesContainer.appendChild(messageElement);
-
-        // Turn button placeholders into actual, clickable buttons
-        messageContent.querySelectorAll('.chat-option-btn').forEach(button => {
-            button.addEventListener('click', () => {
-                this.chatInput.value = button.textContent;
-                this.handleSendMessage();
-                // Optional: remove buttons after one is clicked
-                button.parentElement.remove();
-            });
+    let formattedContent;
+    if (typeof content === 'object' && content.type === 'disambiguation') {
+        formattedContent = `<p>${content.question}</p>`;
+        formattedContent += '<div class="message-options-container">';
+        content.options.forEach(option => {
+            formattedContent += `<button class="chat-option-btn">${option}</button>`;
         });
-
-        const messageTime = document.createElement('div');
-        messageTime.className = 'message-time';
-        messageTime.textContent = this.formatTime(new Date());
-        messageElement.appendChild(messageTime);
-
-        requestAnimationFrame(() => {
-            messageElement.style.opacity = '1';
-            messageElement.style.transform = 'translateY(0)';
-        });
-
-        setTimeout(() => {
-            this.scrollToBottom();
-        }, 100);
-
-        this.saveChatHistory();
+        formattedContent += '</div>';
+    } else {
+         formattedContent = `<p>${content}</p>`;
     }
+    
+    messageContent.innerHTML = formattedContent;
+    messageElement.appendChild(messageContent);
+    this.messagesContainer.appendChild(messageElement);
+
+    // Turn button placeholders into actual, clickable buttons with actions
+    messageContent.querySelectorAll('.chat-option-btn').forEach(button => {
+        button.addEventListener('click', () => {
+            const action = button.dataset.action;
+            const messageText = button.textContent;
+            
+            // Remove the button container after a selection is made
+            button.closest('.message-options-container').style.display = 'none';
+
+            if (action === 'clear-history-confirm') {
+                this.clearHistory();
+            } else if (action === 'clear-history-cancel') {
+                this.addMessage("Okay, I won't clear the history.", 'bot');
+            } else {
+                // Default behavior for other buttons (like disambiguation)
+                this.chatInput.value = messageText;
+                this.handleSendMessage();
+            }
+        });
+    });
+    
+    const messageTime = document.createElement('div');
+    messageTime.className = 'message-time';
+    messageTime.textContent = this.formatTime(new Date());
+    messageElement.appendChild(messageTime);
+
+    requestAnimationFrame(() => {
+        messageElement.style.opacity = '1';
+        messageElement.style.transform = 'translateY(0)';
+    });
+
+    setTimeout(() => {
+        this.scrollToBottom();
+    }, 100);
+
+    this.saveChatHistory();
+}
     /**
      * Format message content with proper line breaks and emojis
      */
@@ -3607,26 +3629,20 @@ class ChatbotWidget {
      */
     loadChatHistory() {
         try {
+            // Clear any existing messages first
+            this.messagesContainer.innerHTML = '';
+
             const history = localStorage.getItem('chatbot-history');
             if (history) {
                 const messages = JSON.parse(history);
-                
-                const welcomeMessageHTML = this.messagesContainer.innerHTML;
-                this.messagesContainer.innerHTML = welcomeMessageHTML;
 
                 messages.forEach(msg => {
-                    // Don't re-add the initial welcome message
-                    if (msg.sender === 'bot' && msg.content.includes("help you with questions")) {
-                        return;
-                    }
-
                     const messageElement = document.createElement('div');
                     messageElement.className = `message ${msg.sender}-message`;
 
                     const messageContent = document.createElement('div');
                     messageContent.className = 'message-content';
-                    // Directly use the saved HTML content
-                    messageContent.innerHTML = `<p>${msg.content}</p>`; 
+                    messageContent.innerHTML = `<p>${msg.content}</p>`;
 
                     const messageTime = document.createElement('div');
                     messageTime.className = 'message-time';
@@ -3637,10 +3653,20 @@ class ChatbotWidget {
                     this.messagesContainer.appendChild(messageElement);
                 });
 
-                this.scrollToBottom();
+            } else {
+                // If there's no history, add the initial welcome message
+                const welcomeContent = "Hello! I'm here to help you explore our 100+ projects. You can ask me about games, utilities, or a specific day's project. How can I assist you today?";
+                this.addMessage(welcomeContent, 'bot');
             }
+
+            this.scrollToBottom();
+
         } catch (error) {
             console.error('Error loading chat history:', error);
+            // Fallback to a clean state if history is corrupted
+            this.messagesContainer.innerHTML = '';
+            const welcomeContent = "Hello! I'm here to help you explore our 100+ projects. You can ask me about games, utilities, or a specific day's project. How can I assist you today?";
+            this.addMessage(welcomeContent, 'bot');
         }
     }
 
